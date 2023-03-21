@@ -8,7 +8,7 @@ public class NetflixApp extends JFrame {
     private static final String DB_URL = "jdbc:mysql://localhost:3306/netflix?user=root&password=zhe5168ng";
     private static final String SELECT_USER = "SELECT * FROM utilisateurs WHERE nom_utilisateur=? AND mot_de_passe=?";
     private static final String INSERT_USER = "INSERT INTO utilisateurs(nom_utilisateur, mot_de_passe) VALUES (?, ?)";
-    private static final String SELECT_VIDEOS = "SELECT titre, resume, teaser, duree, annee, realisateur, acteurs, categorie, est_vue, note FROM videos";
+    private static final String SELECT_VIDEOS = "SELECT id,titre, resume, teaser, duree, annee, realisateur, acteurs, categorie, est_vue, note FROM videos";
 
     private Connection conn;
     private PreparedStatement selectUserStmt;
@@ -116,40 +116,61 @@ public class NetflixApp extends JFrame {
                 boolean estVue = rs.getBoolean("est_vue");
                 int note = rs.getInt("note");
 
-                // Create a panel for each video
-                JPanel videoPanel = new JPanel(new BorderLayout());
+                JPanel videoPanel = new JPanel(new BorderLayout(10, 10));
                 videoPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
 
-                // Add the image to the panel and make it clickable
-                ImageIcon imageIcon = new ImageIcon("src/images/" + (rs.getRow() % 6 + 1) + ".jpg");
-                JLabel imageLabel = new JLabel(imageIcon);
+                // Add image
+                ImageIcon image = new ImageIcon("src/images/" + rs.getInt("id") + ".jpg");
+                JLabel imageLabel = new JLabel(image);
                 imageLabel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        JFrame descriptionFrame = new JFrame();
-                        JPanel descriptionPanel = new JPanel(new BorderLayout());
-                        JLabel descriptionLabel = new JLabel(titre + ": " + resume);
+                        // Show video details in new frame
+                        JFrame detailsFrame = new JFrame("Video Details");
+                        detailsFrame.setLayout(new BorderLayout());
 
-                        descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                        descriptionPanel.add(descriptionLabel, BorderLayout.CENTER);
-                        descriptionFrame.add(descriptionPanel);
-                        descriptionFrame.pack();
-                        descriptionFrame.setLocationRelativeTo(mainFrame);
-                        descriptionFrame.setVisible(true);
+                        // Add image and description
+                        JPanel detailsPanel = new JPanel(new BorderLayout());
+                        JLabel detailsImageLabel = new JLabel(image);
+                        JTextArea detailsTextArea = new JTextArea();
+                        detailsTextArea.setLineWrap(true);
+                        detailsTextArea.setWrapStyleWord(true);
+                        detailsTextArea.setText(titre + "\n" + realisateur + ", " + categorie);
+                        detailsPanel.add(detailsImageLabel, BorderLayout.CENTER);
+                        detailsPanel.add(detailsTextArea, BorderLayout.SOUTH);
+
+                        // Add watch and note buttons
+                        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+                        JButton watchButton = new JButton("Watch");
+                        JButton noteButton = new JButton("Note");
+                        buttonsPanel.add(watchButton);
+                        buttonsPanel.add(noteButton);
+
+                        detailsFrame.add(detailsPanel, BorderLayout.CENTER);
+                        detailsFrame.add(buttonsPanel, BorderLayout.SOUTH);
+                        detailsFrame.pack();
+                        detailsFrame.setLocationRelativeTo(null);
+                        detailsFrame.setVisible(true);
                     }
                 });
-                videoPanel.add(imageLabel, BorderLayout.CENTER);
+                videoPanel.add(imageLabel, BorderLayout.NORTH);
 
-                // Add the video information to the panel
+                // Add video info
+                JPanel infoPanel = new JPanel(new GridLayout(4, 1));
                 JLabel titleLabel = new JLabel(titre);
                 titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                videoPanel.add(titleLabel, BorderLayout.NORTH);
+                JLabel realisateurLabel = new JLabel(realisateur);
+                realisateurLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                JLabel categorieLabel = new JLabel(categorie);
+                categorieLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                JLabel anneeLabel = new JLabel(Integer.toString(annee));
+                anneeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                infoPanel.add(titleLabel);
+                infoPanel.add(realisateurLabel);
+                infoPanel.add(categorieLabel);
+                infoPanel.add(anneeLabel);
+                videoPanel.add(infoPanel, BorderLayout.CENTER);
 
-                JLabel infoLabel = new JLabel(annee + " - " + realisateur + ", " + categorie);
-                infoLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                videoPanel.add(infoLabel, BorderLayout.SOUTH);
-
-                // Add the video panel to the videos list panel
                 videosPanel.add(videoPanel);
             }
         } catch (SQLException ex) {
@@ -169,4 +190,3 @@ public class NetflixApp extends JFrame {
         mainFrame.setVisible(true);
     }
 }
-
