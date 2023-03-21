@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.*;
 
 public class NetflixApp extends JFrame {
@@ -93,7 +95,7 @@ public class NetflixApp extends JFrame {
         mainFrame = new JFrame("Netflix App - " + nom_utilisateur);
         usernameLabel = new JLabel(nom_utilisateur, SwingConstants.LEFT);
         disconnectButton = new JButton("Disconnect");
-        JPanel videosPanel = new JPanel(new GridLayout(0, 3, 10, 10));
+        JPanel videosPanel = new JPanel(new GridLayout(2, 3, 10, 10));
 
         disconnectButton.addActionListener(e -> {
             mainFrame.dispose();
@@ -114,25 +116,40 @@ public class NetflixApp extends JFrame {
                 boolean estVue = rs.getBoolean("est_vue");
                 int note = rs.getInt("note");
 
-                // Create a panel for the video item
-                JPanel videoPanel = new JPanel(new BorderLayout(10, 10));
+                // Create a panel for each video
+                JPanel videoPanel = new JPanel(new BorderLayout());
+                videoPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
 
-                // Add the image to the WEST position
-                ImageIcon image = new ImageIcon("src/images/" + (rs.getRow() % 6 + 1) + ".jpg");
-                JLabel imageLabel = new JLabel(image);
-                videoPanel.add(imageLabel, BorderLayout.WEST);
+                // Add the image to the panel and make it clickable
+                ImageIcon imageIcon = new ImageIcon("src/images/" + (rs.getRow() % 6 + 1) + ".jpg");
+                JLabel imageLabel = new JLabel(imageIcon);
+                imageLabel.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        JFrame descriptionFrame = new JFrame();
+                        JPanel descriptionPanel = new JPanel(new BorderLayout());
+                        JLabel descriptionLabel = new JLabel(titre + ": " + resume);
 
-                // Add the video information to the CENTER position
-                JPanel infoPanel = new JPanel(new GridLayout(0, 1, 5, 5));
-                infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Add padding
-                JLabel titleLabel = new JLabel(titre, SwingConstants.CENTER);
-                JLabel yearDirectorLabel = new JLabel(annee + " - " + realisateur, SwingConstants.CENTER);
-                JLabel categoryLabel = new JLabel(categorie, SwingConstants.CENTER);
-                infoPanel.add(titleLabel);
-                infoPanel.add(yearDirectorLabel);
-                infoPanel.add(categoryLabel);
-                videoPanel.add(infoPanel, BorderLayout.CENTER);
+                        descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                        descriptionPanel.add(descriptionLabel, BorderLayout.CENTER);
+                        descriptionFrame.add(descriptionPanel);
+                        descriptionFrame.pack();
+                        descriptionFrame.setLocationRelativeTo(mainFrame);
+                        descriptionFrame.setVisible(true);
+                    }
+                });
+                videoPanel.add(imageLabel, BorderLayout.CENTER);
 
+                // Add the video information to the panel
+                JLabel titleLabel = new JLabel(titre);
+                titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                videoPanel.add(titleLabel, BorderLayout.NORTH);
+
+                JLabel infoLabel = new JLabel(annee + " - " + realisateur + ", " + categorie);
+                infoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                videoPanel.add(infoLabel, BorderLayout.SOUTH);
+
+                // Add the video panel to the videos list panel
                 videosPanel.add(videoPanel);
             }
         } catch (SQLException ex) {
@@ -151,6 +168,5 @@ public class NetflixApp extends JFrame {
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setVisible(true);
     }
-
 }
 
