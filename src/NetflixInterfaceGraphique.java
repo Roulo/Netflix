@@ -1,4 +1,5 @@
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.*;
@@ -11,6 +12,7 @@ public class NetflixInterfaceGraphique extends JFrame {
     private JButton boutonConnexion;
     private JButton boutonCreationCompte;
 
+    /*
     private JLabel labelTitre;
     private JLabel labelTeaser;
     private JLabel labelDescription;
@@ -20,6 +22,7 @@ public class NetflixInterfaceGraphique extends JFrame {
     private JLabel labelRealisateur;
     private JLabel labelActeurs;
     private JLabel labelNote;
+    */
 
     private Connection connexion;
 
@@ -61,13 +64,21 @@ public class NetflixInterfaceGraphique extends JFrame {
             }
         });
 
+        JFrame frame = new JFrame();
         JPanel panel = new JPanel();
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
         panel.add(labelNomUtilisateur);
         panel.add(champNomUtilisateur);
         panel.add(labelMotDePasse);
         panel.add(champMotDePasse);
         panel.add(boutonConnexion);
         panel.add(boutonCreationCompte);
+
+        frame.add(panel, BorderLayout.CENTER);
+
+        frame.setTitle("Netflix");
         this.add(panel);
         this.pack();
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -103,10 +114,9 @@ public class NetflixInterfaceGraphique extends JFrame {
     }
 
 
-
+/*
     //affiche tout les films de la base de donnée, videos (titre, resume, teaser, duree, annee, realisateur, acteurs, categorie, est_vue, note)
     void afficherFilms() {
-
         try {
             PreparedStatement statement = connexion.prepareStatement("SELECT * FROM videos");
             ResultSet resultSet = statement.executeQuery();
@@ -154,4 +164,6 @@ public class NetflixInterfaceGraphique extends JFrame {
             e.printStackTrace();
         }
     }
+
+ */
 }
