@@ -5,15 +5,18 @@ import java.awt.event.MouseEvent;
 import java.sql.*;
 
 public class NetflixApp extends JFrame {
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/netflix?user=root&password=zhe5168ng";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/netflix?user=root&password=";
     private static final String SELECT_USER = "SELECT * FROM utilisateurs WHERE nom_utilisateur=? AND mot_de_passe=?";
     private static final String INSERT_USER = "INSERT INTO utilisateurs(nom_utilisateur, mot_de_passe) VALUES (?, ?)";
     private static final String SELECT_VIDEOS = "SELECT id,titre, resume, teaser, duree, annee, realisateur, acteurs, categorie, est_vue, note FROM videos";
+    private static final String SELECT_SEARCH_VIDEOS = "SELECT id,titre, resume, teaser, duree, annee, realisateur, acteurs, categorie, est_vue, note FROM videos WHERE titre LIKE ? OR annee LIKE ? OR realisateur LIKE ? OR acteurs LIKE ? OR categorie LIKE ? ORDER BY annee ASC";
 
     private Connection conn;
+
     private PreparedStatement selectUserStmt;
     private PreparedStatement insertUserStmt;
     private PreparedStatement selectVideosStmt;
+    private PreparedStatement selectSearchStmt;
 
     private JTextField usernameField;
     private JPasswordField passwordField;
@@ -21,9 +24,12 @@ public class NetflixApp extends JFrame {
     private JButton createButton;
 
     private JFrame mainFrame;
+
+    private JButton menuButton;
     private JLabel usernameLabel;
+    private JTextField searchBar;
+    private JButton searchButton;
     private JButton disconnectButton;
-    private JList<String> videosList;
 
     public NetflixApp() {
         super("Netflix App");
@@ -33,6 +39,7 @@ public class NetflixApp extends JFrame {
             selectUserStmt = conn.prepareStatement(SELECT_USER);
             insertUserStmt = conn.prepareStatement(INSERT_USER);
             selectVideosStmt = conn.prepareStatement(SELECT_VIDEOS);
+            selectSearchStmt = conn.prepareStatement(SELECT_SEARCH_VIDEOS);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -94,57 +101,124 @@ public class NetflixApp extends JFrame {
     private void showMainScreen(String nom_utilisateur) {
         mainFrame = new JFrame("Netflix App - " + nom_utilisateur);
         usernameLabel = new JLabel(nom_utilisateur, SwingConstants.LEFT);
+        menuButton = new JButton("Menu");
         disconnectButton = new JButton("Disconnect");
+        searchBar = new JTextField(10);
+        searchButton = new JButton("Search");
         JPanel videosPanel = new JPanel(new GridLayout(2, 3, 10, 10));
+
+        menuButton.addActionListener(e -> {
+            mainFrame.dispose();
+            showMainScreen(nom_utilisateur);
+        });
 
         disconnectButton.addActionListener(e -> {
             mainFrame.dispose();
             new NetflixApp();
         });
 
+
+        searchButton.addActionListener(e -> {
+            try {
+                String searchQuery = searchBar.getText();
+                selectSearchStmt.setString(1, "%" + searchQuery + "%");
+                selectSearchStmt.setString(2, "%" + searchQuery + "%");
+                selectSearchStmt.setString(3, "%" + searchQuery + "%");
+                selectSearchStmt.setString(4, "%" + searchQuery + "%");
+                selectSearchStmt.setString(5, "%" + searchQuery + "%");
+                ResultSet rs = selectSearchStmt.executeQuery();
+                JFrame searchFrame = new JFrame("Search Result");
+                JPanel searchPanel = new JPanel(new GridLayout(0, 3, 10, 10));
+                while (rs.next()) {
+                    JPanel videoPanel = new JPanel(new BorderLayout(10, 10));
+                    videoPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+                    ImageIcon image = new ImageIcon("src/images/" + rs.getInt("id") + ".jpg");
+                    JLabel imageLabel = new JLabel(image);
+                    imageLabel.addMouseListener(new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            // Handle image click
+                        }
+                    });
+                    JLabel titleLabel = new JLabel(rs.getString("titre"), SwingConstants.CENTER);
+                    JLabel yearLabel = new JLabel(Integer.toString(rs.getInt("annee")), SwingConstants.CENTER);
+                    videoPanel.add(imageLabel, BorderLayout.CENTER);
+                    videoPanel.add(titleLabel, BorderLayout.SOUTH);
+                    videoPanel.add(yearLabel, BorderLayout.NORTH);
+                    searchPanel.add(videoPanel);
+                }
+                JScrollPane searchScrollPane = new JScrollPane(searchPanel);
+                searchFrame.add(searchScrollPane);
+                searchFrame.pack();
+                searchFrame.setLocationRelativeTo(null);
+                searchFrame.setVisible(true);
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+
+
+
         try {
             ResultSet rs = selectVideosStmt.executeQuery();
             while (rs.next()) {
                 String titre = rs.getString("titre");
-                String resume = rs.getString("resume");
-                String teaser = rs.getString("teaser");
                 int duree = rs.getInt("duree");
                 int annee = rs.getInt("annee");
                 String realisateur = rs.getString("realisateur");
-                String acteurs = rs.getString("acteurs");
                 String categorie = rs.getString("categorie");
-                boolean estVue = rs.getBoolean("est_vue");
+                final boolean[] estVue = {rs.getBoolean("est_vue")};
                 int note = rs.getInt("note");
 
                 JPanel videoPanel = new JPanel(new BorderLayout(10, 10));
                 videoPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
 
-                // Add image
                 ImageIcon image = new ImageIcon("src/images/" + rs.getInt("id") + ".jpg");
                 JLabel imageLabel = new JLabel(image);
                 imageLabel.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        // Show video details in new frame
                         JFrame detailsFrame = new JFrame("Video Details");
                         detailsFrame.setLayout(new BorderLayout());
 
-                        // Add image and description
                         JPanel detailsPanel = new JPanel(new BorderLayout());
                         JLabel detailsImageLabel = new JLabel(image);
                         JTextArea detailsTextArea = new JTextArea();
                         detailsTextArea.setLineWrap(true);
                         detailsTextArea.setWrapStyleWord(true);
-                        detailsTextArea.setText(titre + "\n" + realisateur + ", " + categorie);
-                        detailsPanel.add(detailsImageLabel, BorderLayout.CENTER);
-                        detailsPanel.add(detailsTextArea, BorderLayout.SOUTH);
 
-                        // Add watch and note buttons
+                        detailsTextArea.setText(" " + titre + "\n " + duree + "min - " + categorie + "\n " + annee + "\n " + estVue[0] + "\n " + note + "/5");
+                        detailsTextArea.setEditable(false);
+                        detailsPanel.add(detailsImageLabel, BorderLayout.NORTH);
+                        detailsPanel.add(detailsTextArea, BorderLayout.CENTER);
+
+
                         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
                         JButton watchButton = new JButton("Watch");
                         JButton noteButton = new JButton("Note");
                         buttonsPanel.add(watchButton);
                         buttonsPanel.add(noteButton);
+
+                        watchButton.addActionListener(e1 -> {
+                            /*
+                            try {
+                                //à compléter
+                            } catch (SQLException ex) {
+                                ex.printStackTrace();
+                            }
+                            */
+                        });
+
+                        noteButton.addActionListener(e1 -> {
+                            String note = JOptionPane.showInputDialog("Note sur 5");
+                            /*
+                            try {
+                                //à compléter
+                            } catch (SQLException ex) {
+                                ex.printStackTrace();
+                            }
+                            */
+                        });
 
                         detailsFrame.add(detailsPanel, BorderLayout.CENTER);
                         detailsFrame.add(buttonsPanel, BorderLayout.SOUTH);
@@ -157,6 +231,7 @@ public class NetflixApp extends JFrame {
 
                 // Add video info
                 JPanel infoPanel = new JPanel(new GridLayout(4, 1));
+
                 JLabel titleLabel = new JLabel(titre);
                 titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
                 JLabel realisateurLabel = new JLabel(realisateur);
@@ -165,6 +240,7 @@ public class NetflixApp extends JFrame {
                 categorieLabel.setHorizontalAlignment(SwingConstants.CENTER);
                 JLabel anneeLabel = new JLabel(Integer.toString(annee));
                 anneeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
                 infoPanel.add(titleLabel);
                 infoPanel.add(realisateurLabel);
                 infoPanel.add(categorieLabel);
@@ -177,8 +253,11 @@ public class NetflixApp extends JFrame {
             ex.printStackTrace();
         }
 
-        JPanel topPanel = new JPanel(new GridLayout(1, 2));
+        JPanel topPanel = new JPanel(new GridLayout(1, 5));
+        topPanel.add(menuButton);
         topPanel.add(usernameLabel);
+        topPanel.add(searchBar);
+        topPanel.add(searchButton);
         topPanel.add(disconnectButton);
 
         mainFrame.add(topPanel, BorderLayout.NORTH);
